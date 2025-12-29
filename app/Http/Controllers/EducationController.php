@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\EducationExport;
 use App\Models\Education;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
+use Maatwebsite\Excel\Facades\Excel;
 
 class EducationController extends Controller
 {
@@ -54,35 +56,44 @@ class EducationController extends Controller
 
     public function downloadCSV(){
         $filename = 'MyEducation.csv';
-        $education = Education::where('user_id', auth()->user()->id)->get();
 
-        $headers = [
-            "Content-Type" => "text/csv",
-            "Content-Disposition" => "attachment; filename=$filename",
-        ];
-
-        $callback = function () use($education) {
-            $file = fopen('php://output', 'w');
-
-            // Header csv
-            fputcsv($file, ['No', 'Educational Level', 'School Name', 'Entry Year', 'Graduation Year', 'Choice']);
-
-            foreach($education as $index => $item){
-                fputcsv($file, [
-                    $index + 1,
-                    $item->educational_level,
-                    $item->school_name,
-                    $item->entry_year,
-                    $item->graduation_year,
-                    $item->choice
-                ]);
-            }
-
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        return Excel::download(new EducationExport(), $filename, \Maatwebsite\Excel\Excel::CSV,[
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename=$filename',
+            'Content-Transfer-Encoding' => 'binary',
+            'charset' => 'UTF-8',
+            'Content-Encoding' => 'UTF-8',
+        ]);
     }
+
+    // $education = Education::where('user_id', auth()->user()->id)->get();
+
+        // $headers = [
+        //     "Content-Type" => "text/csv",
+        //     "Content-Disposition" => "attachment; filename=$filename",
+        // ];
+
+        // $callback = function () use($education) {
+        //     $file = fopen('php://output', 'w');
+
+        //     // Header csv
+        //     fputcsv($file, ['No', 'Educational Level', 'School Name', 'Entry Year', 'Graduation Year', 'Choice']);
+
+        //     foreach($education as $index => $item){
+        //         fputcsv($file, [
+        //             $index + 1,
+        //             $item->educational_level,
+        //             $item->school_name,
+        //             $item->entry_year,
+        //             $item->graduation_year,
+        //             $item->choice
+        //         ]);
+        //     }
+
+        //     fclose($file);
+        // };
+
+        // return response()->stream($callback, 200, $headers);
 
     public function downloadPdf(){
         $education = Education::where('user_id', auth()->user()->id)->get();
